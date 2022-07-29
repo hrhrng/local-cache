@@ -16,18 +16,36 @@ public class SimpleLoadingCache<K,V> {
         this.loader = loader;
     }
 
+    public SimpleLoadingCache() {
+        this.map = new ConcurrentHashMap<>();
+    }
+
+    public SimpleLoadingCache(Function<K,V> loader, int initialCapacity) {
+        this.map = new ConcurrentHashMap<>(initialCapacity);
+        this.loader = loader;
+    }
+
+    public SimpleLoadingCache(int initialCapacity) {
+        this.map = new ConcurrentHashMap<>(initialCapacity);
+    }
+
+
 
     public V get(K key) {
+        return get(key, this.loader);
+    }
+
+    public V get(K key, Function<K, V> loader) {
         Object value = map.get(key);
         // already loaded
         if(value != null && !(value instanceof FutureTask)) {
             return (V) value;
         }
         // task is not initial or task is running
-        return compute(key, value);
+        return compute(key, value, loader);
     }
 
-    private V compute(K key, Object v) {
+    private V compute(K key, Object v, Function<K, V> loader) {
         FutureTask<V> task;
         boolean creator = false;
         if(v != null) {
